@@ -4,6 +4,7 @@ import re
 import numpy as np
 import pandas as pd
 from datetime import datetime
+import os
 
 # Load model
 model = joblib.load("model/model.pkl")
@@ -25,24 +26,25 @@ st.set_page_config(page_title="AI Ticket Router", layout="centered")
 st.title("💼 AI Customer Support System (Production)")
 
 # =========================
-# MULTI INPUT FORM (IMPORTANT UPGRADE)
+# INPUTS
 # =========================
-
 subject = st.text_input("Ticket Subject")
 description = st.text_area("Ticket Description")
+
 ticket_type = st.selectbox(
     "Ticket Type",
     ["Technical Issue", "Billing", "Account Access", "Product Inquiry"]
 )
 
 product = st.text_input("Product Purchased")
+
 channel = st.selectbox(
     "Ticket Channel",
     ["Email", "Phone", "Chat", "Social Media"]
 )
 
 # =========================
-# Predict
+# PREDICT
 # =========================
 if st.button("Predict Category"):
 
@@ -54,13 +56,14 @@ if st.button("Predict Category"):
     prediction = model.predict(vector)[0]
     proba = model.predict_proba(vector).max()
 
-    # Output
     st.success(f"📌 Predicted Category: {prediction}")
     st.info(f"🎯 Confidence Score: {round(proba * 100, 2)}%")
 
     # =========================
-    # Logging (Production)
+    # LOGGING
     # =========================
+    os.makedirs("logs", exist_ok=True)
+
     log_data = {
         "time": datetime.now(),
         "subject": subject,
@@ -74,11 +77,16 @@ if st.button("Predict Category"):
 
     df_log = pd.DataFrame([log_data])
 
-    import os
-    if not os.path.exists("logs/predictions.csv"):
-        df_log.to_csv("logs/predictions.csv", index=False)
-    else:
-        df_log.to_csv("logs/predictions.csv", mode='a', header=False, index=False)
+    log_file = "logs/predictions.csv"
+
+    file_exists = os.path.exists(log_file)
+
+    df_log.to_csv(
+        log_file,
+        mode='a',
+        header=not file_exists,
+        index=False
+    )
 
 else:
-    st.warning("Please fill required fields")
+    st.warning("Please fill all required fields")
